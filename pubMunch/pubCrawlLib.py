@@ -2173,10 +2173,32 @@ class LwwCrawler(Crawler):
 
         # PDF
         # lww PDFs are not on the same server => offsite
+        # print(fullPage)
         pdfUrls = findLinksWithUrlPart(fullPage, "pdfs.journals.lww.com", canBeOffsite=True)
         if len(pdfUrls)==1:
             pdfPage = httpGetDelay(pdfUrls[0], delayTime)
             paperData["main.pdf"] = pdfPage
+        else:
+            
+            """
+            LWW calls some JS or asp.net stuff to open their PDF links, so the usual soupstrainer for <a> <iframes> etc wasn't working 
+            Instead, try to access this div specifically and pull out the data-pdf-url atrribute
+
+                <div id="js-ejp-article-tools"
+                    ...
+                    data-pdf-url="https://pdfs.journals.lww.com/ear-hearing/2020/11000/Fiber_Specific_Changes_in_White_Matter.26.pdf?token=method|ExpireAbsolute;source|Journals;ttl|1612411883156;payload|mY8D3u1TCCsNvP5E421JYK6N6XICDamxByyYpaNzk7FKjTaa1Yz22MivkHZqjGP4kdS2v0J76WGAnHACH69s21Csk0OpQi3YbjEMdSoz2UhVybFqQxA7lKwSUlA502zQZr96TQRwhVlocEp/sJ586aVbcBFlltKNKo+tbuMfL73hiPqJliudqs17cHeLcLbV/CqjlP3IO0jGHlHQtJWcICDdAyGJMnpi6RlbEJaRheGeh5z5uvqz3FLHgPKVXJzdDM8Gb6FZps/opU4+iSS/KighcZeAHZLx2Dzp2N+6PMGRM3RWJqFsgRLnXSDHS/sN;hash|Q35pMVSHIPE8Cfh3OH3SPw=="
+                    ...
+                >
+
+                </div>
+            """
+            pdf_url = fullPage['parsedHtml'].find("div", {"id": "js-ejp-article-tools"})
+            if pdf_url:
+                url = pdf_url['data-pdf-url']
+                print(url)
+                pdfPage = httpGetDelay(url, delayTime, accept="application/pdf")
+                paperData["main.pdf"] = pdfPage
+
 
         # suppl files , also on different server
         suppUrls = findLinksWithUrlPart(fullPage, "links.lww.com", canBeOffsite=True)
