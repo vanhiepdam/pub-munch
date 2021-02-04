@@ -2327,7 +2327,7 @@ class TandfCrawler(Crawler):
             logging.debug("Reading T & F ISSNs")
 
             issnPath = pkg_resources.resource_string(__name__, 'data/tandfIssns.txt').decode('utf8')
-            logging.debug("Reading %s" % issnPath)
+
             self.canDoIssns= set((issnPath.splitlines()))
             self.canDoIssns.update(getScopusIssns("Informa"))
 
