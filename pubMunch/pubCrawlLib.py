@@ -30,6 +30,7 @@ import csv
 import chardet # guessing encoding, ported from firefox
 import unidecode # library for converting to ASCII, ported from perl
 import incapsula
+
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
 
 import requests
@@ -3055,7 +3056,7 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
             paperData = crawler.crawl(url)
 
             if paperData is None:
-                raise pubGetError('No paperData found for this url %s %s' % (artMeta["title"], landingUrl), 'noPaperData')
+                raise pubGetError('No paperData found for this url %s %s' % (artMeta["title"], url), 'noPaperData')
 
             # make sure that the PDF data is really in PDF format
             if paperData is not None and "main.pdf" in paperData:
@@ -3063,7 +3064,7 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
 
             if doc_type == 'pdf':
                 if 'main.pdf' not in paperData:
-                    raise pubGetError('No pdf found for this url %s %s' % (artMeta["title"], landingUrl), 'noPdf')
+                    raise pubGetError('No pdf found for this url %s %s' % (artMeta["title"], url), 'noPdf')
                 elif not return_info:
                     return paperData['main.pdf']['data']
                 else:
