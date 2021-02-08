@@ -1,5 +1,4 @@
 import argparse
-
 from . import pubCrawlLib
 
 def download_pmid(pmid, config={}, return_info=False):
@@ -38,4 +37,3 @@ def download_pmid_program():
 
     with open('{}.pdf'.format(args.pmid), 'wb') as file:
         file.write(pdf_file)
-

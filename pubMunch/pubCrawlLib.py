@@ -30,6 +30,7 @@ import csv
 import chardet # guessing encoding, ported from firefox
 import unidecode # library for converting to ASCII, ported from perl
 import incapsula
+
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
 
 import requests
@@ -2172,10 +2173,32 @@ class LwwCrawler(Crawler):
 
         # PDF
         # lww PDFs are not on the same server => offsite
+        # print(fullPage)
         pdfUrls = findLinksWithUrlPart(fullPage, "pdfs.journals.lww.com", canBeOffsite=True)
         if len(pdfUrls)==1:
             pdfPage = httpGetDelay(pdfUrls[0], delayTime)
             paperData["main.pdf"] = pdfPage
+        else:
+            
+            """
+            LWW calls some JS or asp.net stuff to open their PDF links, so the usual soupstrainer for <a> <iframes> etc wasn't working 
+            Instead, try to access this div specifically and pull out the data-pdf-url atrribute
+
+                <div id="js-ejp-article-tools"
+                    ...
+                    data-pdf-url="https://pdfs.journals.lww.com/ear-hearing/2020/11000/Fiber_Specific_Changes_in_White_Matter.26.pdf?token=method|ExpireAbsolute;source|Journals;ttl|1612411883156;payload|mY8D3u1TCCsNvP5E421JYK6N6XICDamxByyYpaNzk7FKjTaa1Yz22MivkHZqjGP4kdS2v0J76WGAnHACH69s21Csk0OpQi3YbjEMdSoz2UhVybFqQxA7lKwSUlA502zQZr96TQRwhVlocEp/sJ586aVbcBFlltKNKo+tbuMfL73hiPqJliudqs17cHeLcLbV/CqjlP3IO0jGHlHQtJWcICDdAyGJMnpi6RlbEJaRheGeh5z5uvqz3FLHgPKVXJzdDM8Gb6FZps/opU4+iSS/KighcZeAHZLx2Dzp2N+6PMGRM3RWJqFsgRLnXSDHS/sN;hash|Q35pMVSHIPE8Cfh3OH3SPw=="
+                    ...
+                >
+
+                </div>
+            """
+            pdf_url = fullPage['parsedHtml'].find("div", {"id": "js-ejp-article-tools"})
+            if pdf_url:
+                url = pdf_url['data-pdf-url']
+                print(url)
+                pdfPage = httpGetDelay(url, delayTime, accept="application/pdf")
+                paperData["main.pdf"] = pdfPage
+
 
         # suppl files , also on different server
         suppUrls = findLinksWithUrlPart(fullPage, "links.lww.com", canBeOffsite=True)
@@ -2326,7 +2349,7 @@ class TandfCrawler(Crawler):
             logging.debug("Reading T & F ISSNs")
 
             issnPath = pkg_resources.resource_string(__name__, 'data/tandfIssns.txt').decode('utf8')
-            logging.debug("Reading %s" % issnPath)
+
             self.canDoIssns= set((issnPath.splitlines()))
             self.canDoIssns.update(getScopusIssns("Informa"))
 
@@ -3055,7 +3078,7 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
             paperData = crawler.crawl(url)
 
             if paperData is None:
-                raise pubGetError('No paperData found for this url %s %s' % (artMeta["title"], landingUrl), 'noPaperData')
+                raise pubGetError('No paperData found for this url %s %s' % (artMeta["title"], url), 'noPaperData')
 
             # make sure that the PDF data is really in PDF format
             if paperData is not None and "main.pdf" in paperData:
@@ -3063,7 +3086,7 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
 
             if doc_type == 'pdf':
                 if 'main.pdf' not in paperData:
-                    raise pubGetError('No pdf found for this url %s %s' % (artMeta["title"], landingUrl), 'noPdf')
+                    raise pubGetError('No pdf found for this url %s %s' % (artMeta["title"], url), 'noPdf')
                 elif not return_info:
                     return paperData['main.pdf']['data']
                 else:
