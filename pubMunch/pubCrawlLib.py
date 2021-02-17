@@ -1140,6 +1140,7 @@ def findCrawlers_article(artMeta, allCrawlers):
     """
     crawlers = []
     for c in allCrawlers:
+        logging.debug("Checking if crawler %s will work" % c.name)
         if c.canDo_article(artMeta):
             logging.log(5, "Based on meta data: Crawler %s is OK to crawl article %s" % (c.name, artMeta["title"]))
             crawlers.append(c)
@@ -1572,6 +1573,7 @@ class ElsevierCrawlerMixin(object):
     def canDo_article(self, artMeta):
         " return true if DOI prefix is by elsevier "
         pList = ["10.1378", "10.1016", "10.1038"]
+        logging.debug("Checking if Elsevier can handle doi: %s" % artMeta["doi"])
         for prefix in pList:
             if artMeta["doi"].startswith(prefix):
                 return True
