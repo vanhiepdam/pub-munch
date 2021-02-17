@@ -1583,7 +1583,7 @@ class ElsevierCrawlerMixin(object):
         return ("sciencedirect.com" in url) or ("elsevier.com" in url)
 
 
-class ElsevierApiCrawler(Crawler, ElsevierCrawlerMixin):
+class ElsevierApiCrawler(ElsevierCrawlerMixin, Crawler):
     name = "elsevier-api"
 
     def canDo_url(self, url):
@@ -1611,7 +1611,7 @@ class ElsevierApiCrawler(Crawler, ElsevierCrawlerMixin):
         return paperData
 
 
-class ElsevierCrawler(Crawler, ElsevierCrawlerMixin):
+class ElsevierCrawler(ElsevierCrawlerMixin, Crawler):
     """ sciencedirect.com is Elsevier's hosting platform
     This crawler is minimalistic, we use ConSyn to get Elsevier text at UCSC.
 
