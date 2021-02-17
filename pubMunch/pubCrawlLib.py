@@ -1540,6 +1540,7 @@ class NpgCrawler(Crawler):
         delayTime = 5
         htmlPage = httpGetDelay(url, delayTime)
         if pageContains(htmlPage, ["make a payment", "purchase this article"]):
+            logging.debug("NPG hit paywall")
             return None
 
         if pageContains(htmlPage, ["This article appears in"]):
@@ -1554,6 +1555,7 @@ class NpgCrawler(Crawler):
         htmlPage["data"] = self._npgStripExtra(origHtml)
         paperData["main.html"] = htmlPage
 
+
         pdfUrl = getMetaPdfUrl(htmlPage)
         if pdfUrl is None:
             url = htmlPage["url"].rstrip("/")
@@ -1562,6 +1564,12 @@ class NpgCrawler(Crawler):
                 pdfUrl = url+".pdf"
             else:
                 pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
+            
+            # https://www.nature.com/articles/s41415-020-1339-7
+            # occasionally no .html at the end, in which case we can just add .pdf
+            if not pdfUrl.endswith(".pdf"):
+                pdfUrl += ".pdf"
+
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
 
