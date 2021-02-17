@@ -2999,7 +2999,6 @@ def selectCrawlers(artMeta, allCrawlers, config):
     crawlerNames = [c.name for c in okCrawlers]
     customCrawlers = set(crawlerNames) - set(["pmc", "generic"])
 
-
     if len(customCrawlers)==0:
         # get the landing URL from a search engine like pubmed or crossref
         # and ask the crawlers again
@@ -3007,6 +3006,13 @@ def selectCrawlers(artMeta, allCrawlers, config):
         landingUrl = getLandingUrlSearchEngine(artMeta, config)
 
         okCrawlers.extend(findCrawlers_url(landingUrl, allCrawlers))
+    
+    # sometimes "npg" articles lead to sciencedirect urls (which we need the Elsevier crawler for)
+    elif "npg" in customCrawlers:
+        logging.debug("npg crawler selected, check to see if Elsevier can grab instead")
+        landingUrl = getLandingUrlSearchEngine(artMeta, config)
+        elsevierCrawlers = [clz(config) for clz in [ElsevierApiCrawler, ElsevierCrawler]]
+        okCrawlers.extend(findCrawlers_url(landingUrl, elsevierCrawlers))
 
     if len(okCrawlers)==0:
         logging.info("No crawler found on either article metadata or URL.")
