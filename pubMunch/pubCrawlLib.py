@@ -1140,6 +1140,7 @@ def findCrawlers_article(artMeta, allCrawlers):
     """
     crawlers = []
     for c in allCrawlers:
+        logging.debug("Checking if crawler %s will work" % c.name)
         if c.canDo_article(artMeta):
             logging.log(5, "Based on meta data: Crawler %s is OK to crawl article %s" % (c.name, artMeta["title"]))
             crawlers.append(c)
@@ -1539,6 +1540,7 @@ class NpgCrawler(Crawler):
         delayTime = 5
         htmlPage = httpGetDelay(url, delayTime)
         if pageContains(htmlPage, ["make a payment", "purchase this article"]):
+            logging.debug("NPG hit paywall")
             return None
 
         if pageContains(htmlPage, ["This article appears in"]):
@@ -1553,6 +1555,7 @@ class NpgCrawler(Crawler):
         htmlPage["data"] = self._npgStripExtra(origHtml)
         paperData["main.html"] = htmlPage
 
+
         pdfUrl = getMetaPdfUrl(htmlPage)
         if pdfUrl is None:
             url = htmlPage["url"].rstrip("/")
@@ -1561,6 +1564,12 @@ class NpgCrawler(Crawler):
                 pdfUrl = url+".pdf"
             else:
                 pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
+            
+            # https://www.nature.com/articles/s41415-020-1339-7
+            # occasionally no .html at the end, in which case we can just add .pdf
+            if not pdfUrl.endswith(".pdf"):
+                pdfUrl += ".pdf"
+
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
 
@@ -1572,6 +1581,7 @@ class ElsevierCrawlerMixin(object):
     def canDo_article(self, artMeta):
         " return true if DOI prefix is by elsevier "
         pList = ["10.1378", "10.1016", "10.1038"]
+        logging.debug("Checking if Elsevier can handle doi: %s" % artMeta["doi"])
         for prefix in pList:
             if artMeta["doi"].startswith(prefix):
                 return True
@@ -1581,7 +1591,7 @@ class ElsevierCrawlerMixin(object):
         return ("sciencedirect.com" in url) or ("elsevier.com" in url)
 
 
-class ElsevierApiCrawler(Crawler, ElsevierCrawlerMixin):
+class ElsevierApiCrawler(ElsevierCrawlerMixin, Crawler):
     name = "elsevier-api"
 
     def canDo_url(self, url):
@@ -1609,7 +1619,7 @@ class ElsevierApiCrawler(Crawler, ElsevierCrawlerMixin):
         return paperData
 
 
-class ElsevierCrawler(Crawler, ElsevierCrawlerMixin):
+class ElsevierCrawler(ElsevierCrawlerMixin, Crawler):
     """ sciencedirect.com is Elsevier's hosting platform
     This crawler is minimalistic, we use ConSyn to get Elsevier text at UCSC.
 
@@ -2989,7 +2999,6 @@ def selectCrawlers(artMeta, allCrawlers, config):
     crawlerNames = [c.name for c in okCrawlers]
     customCrawlers = set(crawlerNames) - set(["pmc", "generic"])
 
-
     if len(customCrawlers)==0:
         # get the landing URL from a search engine like pubmed or crossref
         # and ask the crawlers again
@@ -2997,6 +3006,13 @@ def selectCrawlers(artMeta, allCrawlers, config):
         landingUrl = getLandingUrlSearchEngine(artMeta, config)
 
         okCrawlers.extend(findCrawlers_url(landingUrl, allCrawlers))
+    
+    # sometimes "npg" articles lead to sciencedirect urls (which we need the Elsevier crawler for)
+    elif "npg" in customCrawlers:
+        logging.debug("npg crawler selected, check to see if Elsevier can grab instead")
+        landingUrl = getLandingUrlSearchEngine(artMeta, config)
+        elsevierCrawlers = [clz(config) for clz in [ElsevierApiCrawler, ElsevierCrawler]]
+        okCrawlers.extend(findCrawlers_url(landingUrl, elsevierCrawlers))
 
     if len(okCrawlers)==0:
         logging.info("No crawler found on either article metadata or URL.")
