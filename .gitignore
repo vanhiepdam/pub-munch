@@ -53,3 +53,5 @@ pip-log.txt
 # vim temporary files
 *.swp
 venv
+
+.DS_STORE
