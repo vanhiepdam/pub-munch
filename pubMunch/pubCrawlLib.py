@@ -208,6 +208,14 @@ class pubGetError(Exception):
         return str(self)
 
 # ===== FUNCTIONS =======
+
+def get_crawler_proxy(crawler_name):
+    if pubConf.proxies and pubConf.crawler_to_proxy and crawler_name in pubConf.crawler_to_proxy:
+        proxy = pubConf.proxies.get(pubConf.crawler_to_proxy[crawler_name], {})
+        logging.debug("Using proxy: %s" % str(proxy))
+        return proxy
+    return {}
+
 def resolveDoiWithSfx(sfxServer, doi):
     " return the fulltext url for doi using the SFX system "
     logging.debug("Resolving doi %s with SFX" % doi)
@@ -424,7 +432,7 @@ def httpGetSelenium(url, delaySecs, mustGet=False):
         page['data'] = page['data'].encode('utf8')
     return page
 
-def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cookies=None, userAgent=None, referer=None, newSession=False, accept=None):
+def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cookies=None, userAgent=None, referer=None, newSession=False, accept=None, proxy=None):
     """ download with curl or wget and make sure that delaySecs (global var)
     secs have passed between two calls special cases for highwire hosts and
     some hosts configured in config file.
@@ -434,9 +442,12 @@ def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cook
 
     block flash: use IPad user agent
     newSession: empty the cookie cart before making the request.
+
+    If we're using a proxy, then don't use the webCache, as it's probably filled with data 
+    from a request made without the proxy that we rejected (i.e. couldn't get pdf)
     """
     global webCache
-    if url in webCache:
+    if not proxy and url in webCache:
         logging.log(5, "Using cached http results")
         return webCache[url]
 
@@ -452,7 +463,7 @@ def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cook
             userAgent = forceUserAgent
     if blockFlash:
         userAgent = 'Mozilla/5.0(iPad; U; CPU iPhone OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B314 Safari/531.21.10'
-    page = httpGetRequest(url, userAgent, cookies, referer=referer, newSession=newSession, accept=accept)
+    page = httpGetRequest(url, userAgent, cookies, referer=referer, newSession=newSession, accept=accept, proxy=proxy)
     if mustGet and page == None:
         raise pubGetError('Could not get URL %s' % url, 'illegalUrl')
     return page
@@ -485,7 +496,7 @@ def httpResetSession():
          }
         session.proxies.update(proxies)
 
-def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, accept=None):
+def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, accept=None, proxy=None):
     """
     download a url with the requests module, return a dict with the keys
     url, mimeType, charset and data
@@ -512,7 +523,8 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, acce
     while tryCount < 3:
         signal.alarm(30)
         try:
-            r = session.get(url, headers=headers, cookies=cookies, allow_redirects=True, timeout=30)
+            logging.debug("%s %s" %(url, proxy))
+            r = session.get(url, headers=headers, cookies=cookies, allow_redirects=True, timeout=30, proxies=proxy)
             signal.alarm(0) # stop the alarm
             break
         except (requests.exceptions.ConnectionError,
@@ -520,7 +532,8 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, acce
          requests.exceptions.Timeout,
          requests.exceptions.RequestException,
          TimeoutException
-         ):
+         ) as e:
+            logging.debug(e)
             signal.alarm(0) # stop the alarm
             tryCount += 1
             logging.info('HTTP error, retry number %d' % tryCount)
@@ -1118,7 +1131,7 @@ def checkIssnErrorCounts(pubmedMeta, ignoreIssns, outDir):
         raise pubGetError("a previous run disabled this issn+year", "issnYearErrorExceed-old", \
             "%s %s" % issnYear)
 
-def resolveDoi(doi):
+ddef resolveDoi(doi):
     """ resolve a DOI to the final target url or None on error
     >>> logging.warn("doi test")
     >>> resolveDoi("10.1111/j.1440-1754.2010.01952.x").split(";")[0]
@@ -1182,7 +1195,7 @@ class Crawler():
         """
         return None
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         """ now get the paper, return a paperData dict with 'main.pdf', 'main.html', "S1.pdf" etc
         """
         return None
@@ -1242,10 +1255,10 @@ def findLinksWithUrlRe(page, searchRe):
     return urls
 
 
-def downloadSuppFiles(urls, paperData, delayTime, httpGetFunc=httpGetDelay):
+def downloadSuppFiles(urls, paperData, delayTime, httpGetFunc=httpGetDelay, proxy=None):
     suppIdx = 1
     for url in urls:
-        suppFile = httpGetFunc(url, delayTime)
+        suppFile = httpGetFunc(url, delayTime, proxy=proxy)
         fileExt = detFileExt(suppFile)
         if len(suppFile["data"])>SUPPFILEMAXSIZE:
             logging.warn("supp file %s is too big" % suppFile["url"])
@@ -1368,9 +1381,9 @@ def makeOpenUrl(baseUrl, artMeta):
     logging.debug("Got Open URL %s" % url)
     return url
 
-def addSuppZipFiles(suppZipUrl, paperData, delayTime):
+def addSuppZipFiles(suppZipUrl, paperData, delayTime, proxy=None):
     " add all files from zipfile to paper data dict "
-    zipPage = httpGetDelay(suppZipUrl, delayTime, mustGet=True)
+    zipPage = httpGetDelay(suppZipUrl, delayTime, mustGet=True, proxy=proxy)
     zipFile = io.StringIO(zipPage["data"]) # make it look like a file
     try:
         zfp = zipfile.ZipFile(zipFile, "r") # wrap a zipfile reader around it
@@ -1400,7 +1413,7 @@ class DeGruyterCrawler(Crawler):
     def canDo_url(self, url):
         return ("www.degruyter.com" in url)
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         delayTime = 5
         paperData = OrderedDict()
         pdfUrl = re.sub("\\.xml$", ".pdf", url)
@@ -1430,7 +1443,7 @@ class PmcCrawler(Crawler):
     def makeLandingUrl(self, artMeta):
         return "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         url = url.rstrip("/")
         delayTime = 5
         htmlPage = httpGetDelay(url, delayTime)
@@ -1524,7 +1537,7 @@ class NpgCrawler(Crawler):
         else:
             return htmlStr
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
         # http://www.nature.com/pr/journal/v42/n4/abs/pr19972520a.html - has no pdf
         # unusual: PMID 10854325 has a useless splash page
@@ -1597,7 +1610,7 @@ class ElsevierApiCrawler(ElsevierCrawlerMixin, Crawler):
     def canDo_url(self, url):
         return (self.config.get('elsevierApiKey', None) and self.isElsevierUrl(url))
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         delayTime = crawlDelays["elsevier-api"]
         pdfUrl = None
         if "%2F" in url:
@@ -1608,8 +1621,6 @@ class ElsevierApiCrawler(ElsevierCrawlerMixin, Crawler):
             pdfUrl = 'https://api.elsevier.com/content/article/pii/%s?apiKey=%s' % (parts[-1], self.config['elsevierApiKey'])
         if pdfUrl is None:
             raise pubGetError("no PII for Elsevier article", "noElsevierPII")
-
-        print('Got it', pdfUrl)
 
         paperData = OrderedDict()
         pdfPage = httpGetDelay(pdfUrl, delayTime, accept='application/pdf')
@@ -1631,7 +1642,7 @@ class ElsevierCrawler(ElsevierCrawlerMixin, Crawler):
     def canDo_url(self, url):
         return self.isElsevierUrl(url)
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         if "www.nature.com" in url:
             raise pubGetError("ElsevierCrawler refuses NPG journals", "ElsevierNotNpg", url)
 
@@ -1832,7 +1843,7 @@ class HighwireCrawler(Crawler):
 
         return None
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         " get main html, pdf and supplements for highwire "
         paperData = OrderedDict()
 
@@ -1936,7 +1947,7 @@ class NejmCrawler(Crawler):
             return "http://www.nejm.org/doi/%s" % artMeta["doi"]
         return None
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         paperData = OrderedDict()
         delayTime = crawlDelays["nejm"]
 
@@ -2016,7 +2027,7 @@ class WileyCrawler(Crawler):
             #url = None
         return url
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         delayTime = crawlDelays["wiley"]
         paperData = OrderedDict()
         # landing URLs looks like this:
@@ -2087,7 +2098,7 @@ class SpringerCrawler(Crawler):
     " crawler for springerlink. Not usually needed, see pubGetSpringer and pubConvSpringer. "
 
     name = "springer"
-
+    
     def canDo_article(self, artMeta):
         if artMeta["doi"].split("/")[0] in ["10.1007", "10.1023", "10.1134"]:
             return True
@@ -2099,17 +2110,17 @@ class SpringerCrawler(Crawler):
         else:
             return False
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         paperData = OrderedDict()
         delayTime = crawlDelays["springer"]
-
-        absPage = httpGetDelay(url, delayTime)
+        proxy = get_crawler_proxy("springer") if use_crawler_specific_proxy else {}
+        absPage = httpGetDelay(url, delayTime, proxy=proxy)
         if pageContains(absPage, ["make a payment", "purchase this article", "Buy now"]):
             return None
 
         # landing page has only abstract
         fullUrl = url+"/fulltext.html"
-        fullPage = httpGetDelay(fullUrl, delayTime)
+        fullPage = httpGetDelay(fullUrl, delayTime, proxy=proxy)
         fullPage["data"] = htmlExtractPart(fullPage, "div", {"class":"FulltextWrapper"})
         paperData["main.html"] = fullPage
 
@@ -2118,12 +2129,14 @@ class SpringerCrawler(Crawler):
             pdfUrl = url.replace("/chapter/", "/content/pdf/")+".pdf"
         else:
             pdfUrl = url.replace("/article/", "/content/pdf/")+".pdf"
-        pdfPage = httpGetDelay(pdfUrl, delayTime)
-        paperData["main.pdf"] = pdfPage
 
+        logging.debug("Trying to download pdf at %s" % pdfUrl)
+        pdfPage = httpGetDelay(pdfUrl, delayTime, proxy=proxy)
+        paperData["main.pdf"] = pdfPage
+        
         # suppl files
         suppUrls = findLinksWithUrlPart(absPage, "/MediaObjects/")
-        paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime, proxy=proxy)
 
         return paperData
 
@@ -2205,7 +2218,6 @@ class LwwCrawler(Crawler):
             pdf_url = fullPage['parsedHtml'].find("div", {"id": "js-ejp-article-tools"})
             if pdf_url:
                 url = pdf_url['data-pdf-url']
-                print(url)
                 pdfPage = httpGetDelay(url, delayTime, accept="application/pdf")
                 paperData["main.pdf"] = pdfPage
 
@@ -2246,7 +2258,7 @@ class LwwCrawler(Crawler):
         paperData["main.pdf"] = pdfPage
         return paperData
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         if "landingpage.htm" in url and "?" in url:
             return self.__crawlOvid(url)
         else:
@@ -2272,7 +2284,7 @@ class SilverchairCrawler(Crawler):
         #else:
             #return None
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         paperData = OrderedDict()
         delayTime = crawlDelays["silverchair"]
 
@@ -2386,13 +2398,13 @@ class TandfCrawler(Crawler):
             url = makeOpenUrl("http://www.tandfonline.com/openurl", artMeta)
         return url
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         paperData = OrderedDict()
         delayTime = self._tandfDelay()
-
+        proxy = get_crawler_proxy("tandf") if use_crawler_specific_proxy else None
         url = url.replace("/abs/", "/full/")
 
-        fullPage = httpGetDelay(url, delayTime, newSession=True)
+        fullPage = httpGetDelay(url, delayTime, newSession=True, proxy=proxy)
         if fullPage==None:
             logging.debug("Got no page")
             return None
@@ -2411,12 +2423,12 @@ class TandfCrawler(Crawler):
         # PDF
         pdfUrl = fullPage["url"].replace("/full/", "/pdf/").replace("/abs/", "/pdf/")
         logging.debug("TandF PDF should be at %s" % pdfUrl)
-        pdfPage = httpGetDelay(pdfUrl, delayTime)
+        pdfPage = httpGetDelay(pdfUrl, delayTime, proxy=proxy)
         paperData["main.pdf"] = pdfPage
 
         # get zip file with suppl files
         suppUrl = url.replace("/full/", "/suppl/")
-        supplPage = httpGetDelay(suppUrl, delayTime)
+        supplPage = httpGetDelay(suppUrl, delayTime, proxy=proxy)
         suppPageUrls = htmlFindLinkUrls(supplPage)
         suppZipUrl = None
         for suppPageUrl in suppPageUrls:
@@ -2424,7 +2436,7 @@ class TandfCrawler(Crawler):
                 suppZipUrl = suppPageUrl
 
         if suppZipUrl is not None:
-            addSuppZipFiles(suppZipUrl, paperData, delayTime)
+            addSuppZipFiles(suppZipUrl, paperData, delayTime, proxy=proxy)
 
         return paperData
 
@@ -2515,7 +2527,7 @@ class KargerCrawler(Crawler):
 
         return page
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         if "karger.com" not in url:
             raise pubGetError("not a karger URL", "notKarger")
 
@@ -2597,7 +2609,7 @@ class ScihubCrawler(Crawler):
         self.artMeta = artMeta
         return True
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         if self.scihub==None:
             self.scihub = scihub.SciHub()
 
@@ -2877,7 +2889,7 @@ class GenericCrawler(Crawler):
         if pageContains(landPage, blockTags):
             raise pubGetError("got blocked", "IPblock", landPage["url"])
 
-    def crawl(self, url):
+    def crawl(self, url, use_crawler_specific_proxy=False):
         httpResetSession() # liebertonline tracks usage with cookies. Cookie reset gets around limits
 
         if url.endswith(".pdf"):
@@ -3090,9 +3102,14 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
             logging.info('Crawling base URL %r' % url)
             paperData = None
             crawlInfo["attempted"].append(crawler.name)
-
             paperData = crawler.crawl(url)
 
+            # if failed for whatever reason, and there's an alternate proxy available, try it
+            if paperData is None or not isPdf(paperData["main.pdf"]) or (doc_type == 'pdf' and 'main.pdf' not in paperData):
+                if crawler.name in pubConf.crawler_to_proxy:
+                    print("Couldn't grab PDF, trying again with proxy")
+                    paperData = crawler.crawl(url, use_crawler_specific_proxy=True)
+            
             if paperData is None:
                 raise pubGetError('No paperData found for this url %s %s' % (artMeta["title"], url), 'noPaperData')
 

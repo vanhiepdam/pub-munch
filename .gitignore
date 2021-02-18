@@ -54,4 +54,5 @@ pip-log.txt
 *.swp
 venv
 
-.DS_STORE
+# user pubConf
+doc/pubConf.py
