@@ -11,14 +11,11 @@ if (confName is not None) and not isfile(confName):
 if confName is None:
     confName = expanduser("~/.pubConf")
 newVars = {}
-print(isfile(confName))
 if isfile(confName):
     exec(compile(open(confName).read(), confName, 'exec'), {}, newVars)
-    print(newVars)
     for key, value in newVars.items():
-        print(key, value)
         locals()[key] = value
-print("confName", confName)
+
 # GENERAL SETTINGS   ================================================
 # baseDir for internal data, accessible from cluster 
 # used for data created during pipeline runs
