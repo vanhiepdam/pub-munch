@@ -26,6 +26,14 @@ consynRssUrl = "https://consyn.elsevier.com/batch/atom?key=XXXXXXXXXX"
 # the temporary directory
 TEMPDIR = "/tmp/"
 
-# If you use a proxy server to get fulltext access, enter it here
+# If you want to use the same proxy server to get fulltext access to all articles, enter it here
 # httpProxy="http://myserver.com:8888"
 
+# If you want to specify different proxies for different crawlers, set them here
+proxies = {
+    "proxy_name": {"http":"http://myserver.com:8888"},
+}
+
+crawler_to_proxy = {
+    "crawler_name": "proxy_name",
+}
