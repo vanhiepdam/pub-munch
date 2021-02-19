@@ -1195,7 +1195,7 @@ class Crawler():
         """
         return None
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         """ now get the paper, return a paperData dict with 'main.pdf', 'main.html', "S1.pdf" etc
         """
         return None
@@ -1413,7 +1413,7 @@ class DeGruyterCrawler(Crawler):
     def canDo_url(self, url):
         return ("www.degruyter.com" in url)
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         delayTime = 5
         paperData = OrderedDict()
         pdfUrl = re.sub("\\.xml$", ".pdf", url)
@@ -1443,7 +1443,7 @@ class PmcCrawler(Crawler):
     def makeLandingUrl(self, artMeta):
         return "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         url = url.rstrip("/")
         delayTime = 5
         htmlPage = httpGetDelay(url, delayTime)
@@ -1537,7 +1537,7 @@ class NpgCrawler(Crawler):
         else:
             return htmlStr
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
         # http://www.nature.com/pr/journal/v42/n4/abs/pr19972520a.html - has no pdf
         # unusual: PMID 10854325 has a useless splash page
@@ -1610,7 +1610,7 @@ class ElsevierApiCrawler(ElsevierCrawlerMixin, Crawler):
     def canDo_url(self, url):
         return (self.config.get('elsevierApiKey', None) and self.isElsevierUrl(url))
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         delayTime = crawlDelays["elsevier-api"]
         pdfUrl = None
         if "%2F" in url:
@@ -1642,7 +1642,7 @@ class ElsevierCrawler(ElsevierCrawlerMixin, Crawler):
     def canDo_url(self, url):
         return self.isElsevierUrl(url)
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         if "www.nature.com" in url:
             raise pubGetError("ElsevierCrawler refuses NPG journals", "ElsevierNotNpg", url)
 
@@ -1843,7 +1843,7 @@ class HighwireCrawler(Crawler):
 
         return None
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         " get main html, pdf and supplements for highwire "
         paperData = OrderedDict()
 
@@ -1947,7 +1947,7 @@ class NejmCrawler(Crawler):
             return "http://www.nejm.org/doi/%s" % artMeta["doi"]
         return None
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         paperData = OrderedDict()
         delayTime = crawlDelays["nejm"]
 
@@ -2027,7 +2027,7 @@ class WileyCrawler(Crawler):
             #url = None
         return url
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         delayTime = crawlDelays["wiley"]
         paperData = OrderedDict()
         # landing URLs looks like this:
@@ -2110,10 +2110,9 @@ class SpringerCrawler(Crawler):
         else:
             return False
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         paperData = OrderedDict()
         delayTime = crawlDelays["springer"]
-        proxy = get_crawler_proxy("springer") if use_crawler_specific_proxy else {}
         absPage = httpGetDelay(url, delayTime, proxy=proxy)
         if pageContains(absPage, ["make a payment", "purchase this article", "Buy now"]):
             return None
@@ -2179,7 +2178,7 @@ class LwwCrawler(Crawler):
         # example PMID 10457856
         return None
 
-    def __crawlDirect(self, url):
+    def __crawlDirect(self, url, proxy=None):
         paperData = OrderedDict()
         delayTime = crawlDelays["lww"]
 
@@ -2189,7 +2188,7 @@ class LwwCrawler(Crawler):
         if "type=abstract" in fullPage["url"]:
             url = fullPage["url"].replace("type=abstract", "type=fulltext")
             logging.debug("Regetting page for fulltext with %s" % url)
-            fullPage = httpGetDelay(url, delayTime)
+            fullPage = httpGetDelay(url, delayTime, proxy=proxy)
 
         fullPage["data"] = htmlExtractPart(fullPage, "div", {"id":"ej-article-view"})
         paperData["main.html"] = fullPage
@@ -2199,7 +2198,7 @@ class LwwCrawler(Crawler):
         # print(fullPage)
         pdfUrls = findLinksWithUrlPart(fullPage, "pdfs.journals.lww.com", canBeOffsite=True)
         if len(pdfUrls)==1:
-            pdfPage = httpGetDelay(pdfUrls[0], delayTime)
+            pdfPage = httpGetDelay(pdfUrls[0], delayTime, proxy=proxy)
             paperData["main.pdf"] = pdfPage
         else:
             
@@ -2228,7 +2227,7 @@ class LwwCrawler(Crawler):
 
         return paperData
 
-    def __crawlOvid(self, url):
+    def __crawlOvid(self, url, proxy=None):
         "access to via OVID"
         paperData = OrderedDict()
         delayTime = crawlDelays["lww"]
@@ -2258,11 +2257,11 @@ class LwwCrawler(Crawler):
         paperData["main.pdf"] = pdfPage
         return paperData
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         if "landingpage.htm" in url and "?" in url:
-            return self.__crawlOvid(url)
+            return self.__crawlOvid(url, proxy=proxy)
         else:
-            return self.__crawlDirect(url)
+            return self.__crawlDirect(url, proxy=proxy)
 
 class SilverchairCrawler(Crawler):
     " Silverchair is an increasingly popular hoster "
@@ -2284,7 +2283,7 @@ class SilverchairCrawler(Crawler):
         #else:
             #return None
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         paperData = OrderedDict()
         delayTime = crawlDelays["silverchair"]
 
@@ -2398,10 +2397,9 @@ class TandfCrawler(Crawler):
             url = makeOpenUrl("http://www.tandfonline.com/openurl", artMeta)
         return url
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         paperData = OrderedDict()
         delayTime = self._tandfDelay()
-        proxy = get_crawler_proxy("tandf") if use_crawler_specific_proxy else None
         url = url.replace("/abs/", "/full/")
 
         fullPage = httpGetDelay(url, delayTime, newSession=True, proxy=proxy)
@@ -2527,7 +2525,7 @@ class KargerCrawler(Crawler):
 
         return page
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         if "karger.com" not in url:
             raise pubGetError("not a karger URL", "notKarger")
 
@@ -2609,7 +2607,7 @@ class ScihubCrawler(Crawler):
         self.artMeta = artMeta
         return True
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         if self.scihub==None:
             self.scihub = scihub.SciHub()
 
@@ -2889,7 +2887,7 @@ class GenericCrawler(Crawler):
         if pageContains(landPage, blockTags):
             raise pubGetError("got blocked", "IPblock", landPage["url"])
 
-    def crawl(self, url, use_crawler_specific_proxy=False):
+    def crawl(self, url, proxy=None):
         httpResetSession() # liebertonline tracks usage with cookies. Cookie reset gets around limits
 
         if url.endswith(".pdf"):
@@ -3106,9 +3104,10 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
 
             # if failed for whatever reason, and there's an alternate proxy available, try it
             if paperData is None or not isPdf(paperData["main.pdf"]) or (doc_type == 'pdf' and 'main.pdf' not in paperData):
-                if crawler.name in pubConf.crawler_to_proxy:
-                    print("Couldn't grab PDF, trying again with proxy")
-                    paperData = crawler.crawl(url, use_crawler_specific_proxy=True)
+                print("Couldn't grab PDF, trying again with proxy")
+                proxy = get_crawler_proxy(crawler.name) # returns {} if no proxy specified
+                if proxy:
+                    paperData = crawler.crawl(url, proxy=proxy)
             
             if paperData is None:
                 raise pubGetError('No paperData found for this url %s %s' % (artMeta["title"], url), 'noPaperData')
