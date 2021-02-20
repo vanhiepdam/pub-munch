@@ -1131,7 +1131,7 @@ def checkIssnErrorCounts(pubmedMeta, ignoreIssns, outDir):
         raise pubGetError("a previous run disabled this issn+year", "issnYearErrorExceed-old", \
             "%s %s" % issnYear)
 
-ddef resolveDoi(doi):
+def resolveDoi(doi):
     """ resolve a DOI to the final target url or None on error
     >>> logging.warn("doi test")
     >>> resolveDoi("10.1111/j.1440-1754.2010.01952.x").split(";")[0]
@@ -1410,6 +1410,7 @@ def addSuppZipFiles(suppZipUrl, paperData, delayTime, proxy=None):
         paperData["S"+str(suppIdx+1)+fileExt] = page
 
 class DeGruyterCrawler(Crawler):
+    name = "degruyter"
     def canDo_url(self, url):
         return ("www.degruyter.com" in url)
 
@@ -2147,7 +2148,6 @@ class LwwCrawler(Crawler):
     """
 
     name = "lww"
-
     issnList = None
 
     def __init__(self, config):
@@ -3061,7 +3061,7 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
         crawlers, landingUrl = selectCrawlers(artMeta, allCrawlers, config)
     else:
         # just use the crawlers we got
-        logging.debug("Crawlers were fixed externally: %s" % ",".join(allCrawlerClasses))
+        #logging.debug("Crawlers were fixed externally: %s" % ",".join(allCrawlerClasses))
         cByName = {}
         for c in allCrawlers:
             cByName[c.name] = c
@@ -3105,9 +3105,9 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
 
             # if failed for whatever reason, and there's an alternate proxy available, try it
             if paperData is None or not isPdf(paperData["main.pdf"]) or (doc_type == 'pdf' and 'main.pdf' not in paperData):
-                print("Couldn't grab PDF, trying again with proxy")
                 proxy = get_crawler_proxy(crawler.name) # returns {} if no proxy specified
                 if proxy:
+                    print("Couldn't grab PDF, trying again with proxy")
                     paperData = crawler.crawl(url, proxy=proxy)
             
             if paperData is None:
@@ -3127,10 +3127,8 @@ def crawlOneDoc(artMeta, forceCrawlers=False, doc_type='pdf', config={}, return_
                     return paperData['main.pdf']['data'], crawlInfo
 
             elif not return_info:
-                print("A")
                 return paperData['main.html']['data']
             else:
-                print("B")
                 crawlInfo["succeeded"] = crawler.name
                 return paperData['main.pdf']['data'], crawlInfo
 
