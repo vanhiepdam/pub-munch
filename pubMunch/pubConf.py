@@ -114,8 +114,13 @@ httpTimeout = 5
 # after this the download will be canceled and the paper marked as unsuccessful
 httpTransferTimeout = 60
 
-# if you need to use a proxy to access journals, set it here
+# if you want to set a global proxy to access all journals, set it here
 httpProxy = None
+
+# if you want to use different proxies for different crawlers, set them here
+proxies = {}
+crawler_to_proxy = {}
+
 
 # SFX server for pubmed entries without an outlink
 # YOU NEED TO DEFINE THIS IF YOU WANT TO USE SFX

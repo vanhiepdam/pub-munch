@@ -53,3 +53,6 @@ pip-log.txt
 # vim temporary files
 *.swp
 venv
+
+# user pubConf
+doc/pubConf.py

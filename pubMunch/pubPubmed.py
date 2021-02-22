@@ -442,26 +442,26 @@ def getOutlinks(pmid, preferPmc=False):
     isPmc = False
 
     for line in html:
-        if line.find("<ObjUrl>") != -1:
+        if line.find("<ObjUrl>") != None:
             url=""
             fullText=False
             origPublisher=False
-        if line.find("Attribute") != -1:
+        if line.find("Attribute") != None:
             attribute=stripTag(line)
             if attribute.lower()=="full-text online" or attribute=="full-text pdf":
                 fullText=True
-        if line.find("<NameAbbr>") != -1 and fullText and origPublisher:
+        if line.find("<NameAbbr>") != None and fullText and origPublisher:
             db = stripTag(line)
             outlinks[db]=url
-        if line.find("publishers/providers")!=-1:
+        if line.find("publishers/providers")!=None:
             origPublisher=True
-        if line.find("<Provider>") != -1:
+        if line.find("<Provider>") != None:
             provider=True
-        if line.find("</Provider>") != -1:
+        if line.find("</Provider>") != None:
             provider=False
-        if line.find("<DbFrom>") != -1:
+        if line.find("<DbFrom>") != None:
             db = stripTag(line)
-        if line.find("<Url>") != -1 and not provider:
+        if line.find("<Url>") != None and not provider:
             url = line
             url = stripTag(url).replace("&amp;", "&") # XX strange!
             url = stripTag(url).replace("&lt;", "<")
