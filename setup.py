@@ -1,6 +1,6 @@
-from setuptools import setup, find_packages
-from codecs import open
 from os import path
+
+from setuptools import setup, find_packages
 
 here = path.abspath(path.dirname(__file__))
 
@@ -14,10 +14,12 @@ setup(
         'beautifulsoup4==4.6',
         'unidecode==1.0.22',
         'incapsula-cracker-py3==0.1.8.1',
-        'html5lib==1.0.1'
+        'html5lib==1.0.1',
+        'requests==2.25.1',
+        'urllib3==1.26.4'
     ],
 
-    package_data = {
+    package_data={
         'pubMunch': ['data/*']
     },
 

@@ -1,5 +1,7 @@
 import argparse
+
 from . import pubCrawlLib
+
 
 def download_pmid(pmid, config={}, return_info=False):
     print(pmid, "Downloading meta")
@@ -13,12 +15,13 @@ def download_pmid(pmid, config={}, return_info=False):
         pdf_file = pubCrawlLib.crawlOneDoc(meta, doc_type='pdf', config=config, return_info=return_info)
         return pdf_file
 
+
 def download_pmid_program():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('pmid', type=int, help='The pubmed id to download')
 
     parser.add_argument('--elsevier_key', type=str, help='The pubmed id to download')
-    
+
     parser.add_argument('--sfx_server', type=str, help='The pubmed id to download')
 
     args = parser.parse_args()

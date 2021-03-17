@@ -1,9 +1,17 @@
 # library for convenience functionc related to html ouput
-import sys, codecs, urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error, cgi, doctest, logging, re, os
+import cgi
+import sys
+import urllib.error
+import urllib.error
+import urllib.parse
+import urllib.parse
+import urllib.request
+import urllib.request
+
 try:
     from BeautifulSoup import BeautifulStoneSoup
 except:
-    #sys.stderr.write("warning html.py: BeautifulSoup not installed.\n")
+    # sys.stderr.write("warning html.py: BeautifulSoup not installed.\n")
     pass
 
 try:
@@ -15,118 +23,165 @@ except:
 # *** return only the urls
 def aniGeneUrl(geneId):
     return 'http://crfb.univ-mrs.fr/aniseed/molecule-gene.php?name=%s' % geneId
+
+
 def entrezUrl(accNo):
     return 'http://www.ncbi.nlm.nih.gov/sites/entrez?db=Gene&amp;term=%s' % accNo
+
+
 def ensGeneUrl(geneId, orgName="Homo_sapiens"):
-    orgName=orgName.replace(" ", "_")
+    orgName = orgName.replace(" ", "_")
     return 'http://sep2009.archive.ensembl.org/%s/geneview?gene=%s;db=core' % (orgName, geneId)
+
+
 def genbankUrl(accId):
     return 'http://www.ncbi.nlm.nih.gov/sites/entrez?db=nuccore&amp;term=%s' % accId
+
+
 def ncbiTaxonUrl(taxId):
     return 'http://www.ncbi.nlm.nih.gov/sites/entrez?db=taxonomy&amp;term=%s' % str(taxId)
+
+
 def pmcFulltextXmlUrl(pmcId):
-    return 'http://www.pubmedcentral.nih.gov/oai/oai.cgi?verb=GetRecord&identifier=oai:pubmedcentral.nih.gov:%s&metadataPrefix=pmc' % str(pmcId)
+    return 'http://www.pubmedcentral.nih.gov/oai/oai.cgi?verb=GetRecord&identifier=oai:pubmedcentral.nih.gov:%s&metadataPrefix=pmc' % str(
+        pmcId)
+
 
 def ensemblAutoAttachUrl(genome, chrom, start, end, ourDasUrl):
     coords = "%s:%d-%d" % (chrom, start, end)
     # example: "http://www.ensembl.org/Homo_sapiens/Location/View?g=ENSG00000012048;contigviewbottom=das:http://www.ensembl.org/das/Homo_sapiens.NCBI36.transcript=labels"
-    url = "http://sep2009.archive.ensembl.org/"+genome+"/Location/View?r=%s;contigviewbottom=das:%s=labels" %(coords, ourDasUrl)
+    url = "http://sep2009.archive.ensembl.org/" + genome + "/Location/View?r=%s;contigviewbottom=das:%s=labels" % (
+    coords, ourDasUrl)
     return url
+
+
 def ucscTrackUrl(hgsid, chrom, start, end, server="http://genome.ucsc.edu"):
-    return server+"/cgi-bin/hgTracks?hgsid=%s&position=%s:%s-%s" % (hgsid, chrom, start, end)
+    return server + "/cgi-bin/hgTracks?hgsid=%s&position=%s:%s-%s" % (hgsid, chrom, start, end)
+
 
 def pubmedUrl(pmid):
     return 'http://www.ncbi.nlm.nih.gov/pubmed/%s' % (pmid)
+
+
 def pmcUrl(pmcId):
     return 'http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=%s' % (pmcId)
+
 
 # *** return complete links = with <a> tags around and a default text
 
 def pubmedLink(pmid, text=None):
     if not text:
-        text=pmid
+        text = pmid
     return '<a href="http://www.ncbi.nlm.nih.gov/pubmed/%s">%s</a>' % (pmid, text)
+
 
 def pmcLink(articleId, text=None):
     if not text:
-        text=articleId
+        text = articleId
     artStr = str(articleId)
     return '<a href="http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=%s">%s</a>' % (artStr, text)
+
+
 def ensGeneLink(geneId, orgName="Homo_sapiens"):
     return '<a href="http://sep2009.archive.ensembl.org/%s/geneview?gene=%s;db=core">%s</a>' % (orgName, geneId, geneId)
+
+
 def geneCardsLink(symbol):
-    return '<a href="http://www.genecards.org/cgi-bin/cardsearch.pl?search=disease&symbols=%s#MINICARDS">%s</a>' % (symbol, symbol)
+    return '<a href="http://www.genecards.org/cgi-bin/cardsearch.pl?search=disease&symbols=%s#MINICARDS">%s</a>' % (
+    symbol, symbol)
+
+
 def aniGeneLink(geneId):
     return '<a href="http://crfb.univ-mrs.fr/aniseed/molecule-gene.php?name=%s">%s</a>' % (geneId, geneId)
+
+
 def aniInsituPageLink(insituId):
     return '<a href="http://crfb.univ-mrs.fr/aniseed/insitu.php?id=%s">%s</a>' % (insituId, insituId)
+
+
 def aniISHLink(geneId):
-    return '<a href="http://crfb.univ-mrs.fr/aniseed/insitu-result.php?target=%s&BOOLmut=3&BOOLmanip=2&MOLtype=2&Order=DEV_STAGE_ID">%s</a>' % (geneId, geneId)
+    return '<a href="http://crfb.univ-mrs.fr/aniseed/insitu-result.php?target=%s&BOOLmut=3&BOOLmanip=2&MOLtype=2&Order=DEV_STAGE_ID">%s</a>' % (
+    geneId, geneId)
+
+
 def genbankLink(accId):
-    return '<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&amp;db=Nucleotide&term=%s&amp;doptcmdl=GenBank">%s</a>' %(accId, accId)
+    return '<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&amp;db=Nucleotide&term=%s&amp;doptcmdl=GenBank">%s</a>' % (
+    accId, accId)
+
 
 def ensGenomeLink(orgName, chrom, start, end):
     coords = '%s:%d-%d' % (chrom, start, end)
     return '<a href="http://www.ensembl.org/%s/Location/View?r=%s">%s</a>' % (orgName, coords, coords)
 
+
 def ucscGenomeLink(baseUrl, db, pos, hgsid=None, desc=None):
-    hgsidStr=""
-    if desc==None:
-       desc = pos
-    if hgsid!=None:
+    hgsidStr = ""
+    if desc == None:
+        desc = pos
+    if hgsid != None:
         hgsidStr = "&hgsid=%s" % hgsid
     return '<a href="%s/cgi-bin/hgTracks?db=%s&position=%s%s">%s</a>' % (baseUrl, db, pos, hgsidStr, desc)
 
+
 def ucscCustomTrackUrl(db, pos, customTrackUrl, server="http://genome.ucsc.edu"):
-    return server+"/cgi-bin/hgTracks?db=%s&position=%s&hgt.customText=%s" % (db, pos, customTrackUrl)
+    return server + "/cgi-bin/hgTracks?db=%s&position=%s&hgt.customText=%s" % (db, pos, customTrackUrl)
+
 
 def ucscCustomTrackLink(description, db, pos, customTrackUrl, server="http://genome.ucsc.edu"):
     return '<a href="%s">%s</a>' % (ucscCustomTrackUrl(db, pos, customTrackUrl, server), description)
 
+
 def ucscMafLink(text, baseUrl, db, track, chrom, start, end):
-    return '<a href="%s/cgi-bin/hgc?o=%d&t=%d&g=%s&c=%s&l=%d&r=%d&db=%s">%s</a>' % (baseUrl, start, end, track, chrom, start, end, db, text)
+    return '<a href="%s/cgi-bin/hgc?o=%d&t=%d&g=%s&c=%s&l=%d&r=%d&db=%s">%s</a>' % (
+    baseUrl, start, end, track, chrom, start, end, db, text)
+
+
 def pmcFulltextXmlLink(pmcId):
     return '<a href="%s">PMC%s</a>' % (pmcFulltextXmlUrl(pmcId), str(pmcId))
+
 
 def ucscHgsid(db, server="http://genome.ucsc.edu"):
     """ get a new hgsid from ucsc """
     """ db is a ucsc database as a string, e.g. hg18"""
-    #print("Requesting a new hgsid from UCSC")
-    data = urllib.request.urlopen(server+"/cgi-bin/hgCustom?db=%s" % db)
+    # print("Requesting a new hgsid from UCSC")
+    data = urllib.request.urlopen(server + "/cgi-bin/hgCustom?db=%s" % db)
     for line in data:
-        if line.startswith('<INPUT TYPE=HIDDEN NAME="hgsid" VALUE="') or line.startswith("<INPUT TYPE=HIDDEN NAME='hgsid' VALUE=") :
+        if line.startswith('<INPUT TYPE=HIDDEN NAME="hgsid" VALUE="') or line.startswith(
+                "<INPUT TYPE=HIDDEN NAME='hgsid' VALUE="):
             line = line.strip()
             line = line.replace('<INPUT TYPE=HIDDEN NAME="hgsid" VALUE="', '')
             line = line.replace('"><TABLE BORDER=0>', '')
             line = line.replace("<INPUT TYPE=HIDDEN NAME='hgsid' VALUE='", '')
             line = line.replace("'>", '')
-            #print("New hgsid %s" % line)
+            # print("New hgsid %s" % line)
             return line
-    #sys.stderr.write("error in UCSC web parser, write to maximilianh@gmail.com to get this fixed")
+    # sys.stderr.write("error in UCSC web parser, write to maximilianh@gmail.com to get this fixed")
     print("error in UCSC web parser, write to maximilianh@gmail.com to get this fixed")
 
-def ucscUpload(db, data, hgsid=None, server="http://genome.ucsc.edu", name="User track", description="User track", visibility="1", clade="deuterostome", organism="C. intestinalis"):
+
+def ucscUpload(db, data, hgsid=None, server="http://genome.ucsc.edu", name="User track", description="User track",
+               visibility="1", clade="deuterostome", organism="C. intestinalis"):
     """ adds data as a user track, creates and returns session id if hgsid is None, returns None on error """
     """ db is a string like hg18, data is your custom track as one big string (including the newlines)"""
-    #log("Uploading %d lines to UCSC" % (data.count("\n")+1))
+    # log("Uploading %d lines to UCSC" % (data.count("\n")+1))
 
     if not data.startswith("track"):
         data = 'track name="%s" description="%s" visibility=%s\n' % (name, description, visibility) + data
 
-    if hgsid==None:
+    if hgsid == None:
         hgsid = ucscHgsid(db, server)
 
     vars = {}
-    vars["hgsid"]=hgsid
-    vars["clade"]=clade
-    vars["org"]=organism
-    vars["db"]=db
-    vars["hgct_customText"]=data
-    vars["Submit"]="Submit"
-    html = urllib.request.urlopen(server+"/cgi-bin/hgCustom", urllib.parse.urlencode(vars))
+    vars["hgsid"] = hgsid
+    vars["clade"] = clade
+    vars["org"] = organism
+    vars["db"] = db
+    vars["hgct_customText"] = data
+    vars["Submit"] = "Submit"
+    html = urllib.request.urlopen(server + "/cgi-bin/hgCustom", urllib.parse.urlencode(vars))
     html = html.readlines()
     for l in html:
-        if l.find("Manage Custom Tracks")!=-1:
+        if l.find("Manage Custom Tracks") != -1:
             return hgsid
     print("ERROR: Could not upload custom track into UCSC server at %s<br>\n" % server)
     print("Offending data was:<br>\n")
@@ -135,10 +190,11 @@ def ucscUpload(db, data, hgsid=None, server="http://genome.ucsc.edu", name="User
     print("\n".join(html))
     return None
 
+
 def getStylesheet(name):
     " return a stylesheet "
-    if name=="dent":
-        stylesheet="""
+    if name == "dent":
+        stylesheet = """
 body { 
     font: 10pt/11pt sans-serif; 
     color: #555753; 
@@ -239,7 +295,7 @@ h4 {
 tr.alt{
     background-color:#cbe1f3;
 }"""
-    elif name=="dyndrive":
+    elif name == "dyndrive":
         stylesheet = """
 /*Credits: Dynamic Drive CSS Library */
 /*URL: http://www.dynamicdrive.com/style/ */
@@ -506,10 +562,11 @@ a:visited {
     """
     return stylesheet
 
+
 class htmlWriter:
-    def __init__(self,fname=None,fh=None):
-        if fname=="stdout" or (fname==None and fh==None):
-            #codecs.getwriter('utf8')(sys.stdout.buffer)
+    def __init__(self, fname=None, fh=None):
+        if fname == "stdout" or (fname == None and fh == None):
+            # codecs.getwriter('utf8')(sys.stdout.buffer)
             self.f = sys.stdout
         elif fname:
             self.f = open(fname, "w")
@@ -517,19 +574,19 @@ class htmlWriter:
             self.f = fh
 
     def startCgi(self, contentType="text/html; charset=utf-8", addLines=None):
-        self.writeLn ("Content-type: %s" % contentType)
+        self.writeLn("Content-type: %s" % contentType)
         if addLines:
             for l in addLines:
                 self.writeLn(l)
         self.writeLn("")
 
     def write(self, text):
-        #self.f.write(text.encode("latin1", 'replace'))
+        # self.f.write(text.encode("latin1", 'replace'))
         self.f.write(text.encode("utf8", 'replace'))
 
     def writeLn(self, str):
-        if str==None:
-            str="None"
+        if str == None:
+            str = "None"
         self.write(str)
         self.write("\n")
 
@@ -539,18 +596,18 @@ class htmlWriter:
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
-<title>"""+title+"""</title>""")
-        if stylesheet!=None:
+<title>""" + title + """</title>""")
+        if stylesheet != None:
             self.f.write("""<link href="%s" rel="stylesheet" type="text/css" >\n""" % stylesheet)
-        if styleString!=None:
+        if styleString != None:
             self.f.write("""<style type="text/css">%s\n</style>\n""" % styleString)
-        if scripts!=None:
+        if scripts != None:
             for script in scripts:
                 self.f.write("""<script type="text/javascript" src="%s"></script>\n""" % script)
         for meta, val in metaTags:
             self.f.write("""<meta http-equiv="%s" content="%s">\n""" % (meta, val))
-            
-        self.f.write ("""</head>\n""")
+
+        self.f.write("""</head>\n""")
 
     def endHtml(self):
         self.f.write("\n</body>\n</html>")
@@ -574,7 +631,7 @@ class htmlWriter:
         if menu:
             self.insertMenu(menu)
         if title:
-            self.f.write("""<h2>"""+title+"""</h2>\n""")
+            self.f.write("""<h2>""" + title + """</h2>\n""")
 
     def img(self, url, alt, width=None, height=None):
         if width:
@@ -584,11 +641,11 @@ class htmlWriter:
         self.f.write('<img src="%s" alt="%s" %s/>\n' % (url, alt, attr))
 
     def h2(self, text):
-        str=('<h2>'+text+'</h2>\n')
+        str = ('<h2>' + text + '</h2>\n')
         self.write(str)
 
     def h4(self, text):
-        str=('<h4>'+text+'</h4>\n')
+        str = ('<h4>' + text + '</h4>\n')
         self.write(str)
 
     def linkList(self, list):
@@ -603,22 +660,23 @@ class htmlWriter:
 
     def startTable(self, widths, headers, bgcolor=None, cellspacing=2, cellpadding=3, tblClass=None, headClass=None):
         options = ""
-        if tblClass!=None:
-            options = options+' class="%s"' % tblClass
-        if bgcolor!=None:
-            options = options+' bgcolor="%s"' % bgcolor
+        if tblClass != None:
+            options = options + ' class="%s"' % tblClass
+        if bgcolor != None:
+            options = options + ' bgcolor="%s"' % bgcolor
 
-        self.f.write('\n<table  border="0" cellspacing="%d"  cellpadding="%d"  %s>\n' % (cellspacing, cellpadding, options) )
+        self.f.write(
+            '\n<table  border="0" cellspacing="%d"  cellpadding="%d"  %s>\n' % (cellspacing, cellpadding, options))
 
-        if len(widths)>0:
+        if len(widths) > 0:
             self.f.write("<colgroup>\n")
             for width in widths:
                 self.f.write("  <col width='%s'>\n" % (str(width)))
             self.f.write("</colgroup>\n\n")
 
-        if len(headers)>0:
+        if len(headers) > 0:
             headOpts = ""
-            if headClass!=None:
+            if headClass != None:
                 headOpts = 'class="%s"' % headClass
             self.f.write("  <thead %s>\n" % headOpts)
             self.f.write("  <tr>\n")
@@ -634,13 +692,13 @@ class htmlWriter:
         self.tableData(str, colour)
 
     def tableData(self, str, colour=None):
-        if colour==None:
+        if colour == None:
             self.f.write('<td>%s</td>\n' % str)
         else:
             self.f.write('<td bgcolor="%s">%s</td>\n' % (colour, str))
 
     def startTr(self, bgcolor=None):
-        if bgcolor==None:
+        if bgcolor == None:
             self.f.write('<tr valign="top">\n')
         else:
             self.f.write('<tr bgcolor="%s" valign="top">\n' % bgcolor)
@@ -658,15 +716,15 @@ class htmlWriter:
         self.startTr(bgColour)
 
         for i in range(0, len(cellList)):
-            if colorList!=None:
-                col=colorList[i]
+            if colorList != None:
+                col = colorList[i]
             else:
-                col=None
+                col = None
             cell = cellList[i]
             self.tableData(cell, col)
         self.endTr()
 
-    ## TEXT FORMATTING 
+    ## TEXT FORMATTING
     def link(self, url, text):
         self.write('<a href="%s">%s</a>' % (url, text))
 
@@ -677,11 +735,11 @@ class htmlWriter:
         self.f.write('<a name="%s"></a>' % name)
 
     def h3(self, str, anchor=None):
-        if anchor!=None:
+        if anchor != None:
             self.f.write('<a name="%s"></a>\n' % anchor)
         self.f.write('<hr>\n<h3>%s</h3>\n' % str)
 
-    def small(self,str):
+    def small(self, str):
         self.f.write('<small>%s</small>' % str)
 
     def b(self, str):
@@ -711,18 +769,17 @@ class htmlWriter:
     def endUl(self):
         self.f.write("</ul>\n")
 
-
-    ## FORMS 
+    ## FORMS
 
     def startForm(self, action, method="get"):
         self.writeLn('<form name="input" action="%s" method="%s">\n' % (action, method))
 
     def formInput(self, type, name, size=None, value=None):
-        addStr=""
+        addStr = ""
         if size:
-            addStr+='size="%d"' % size
+            addStr += 'size="%d"' % size
         if value:
-            addStr+='value="%s"' % value
+            addStr += 'value="%s"' % value
 
         self.writeLn('<input type="%s" name="%s" %s />\n' % (type, name, addStr))
 
@@ -734,7 +791,7 @@ class htmlWriter:
 
     def startTextArea(self, name, rows=3, cols=30, id=None):
         opt = ""
-        if id!=None:
+        if id != None:
             opt = 'id="%s"' % id
         self.writeLn('<textarea name="%s" rows="%d" cols="%d" %s>\n' % (name, rows, cols, opt))
 
@@ -755,11 +812,12 @@ class htmlWriter:
         return '%s/cgi-bin/hgTracks?db=%s&position=%s' % (baseUrl, db, pos)
 
     def zfinGeneLink(self, geneId, title=None):
-        if title==None:
-            title=""
+        if title == None:
+            title = ""
         else:
             title = ' title="%s" ' % title
-        return '<a href="http://zfin.org/cgi-bin/webdriver?MIval=aa-markerview.apg&OID=%s" %s>%s</a>' % (geneId, title, geneId)
+        return '<a href="http://zfin.org/cgi-bin/webdriver?MIval=aa-markerview.apg&OID=%s" %s>%s</a>' % (
+        geneId, title, geneId)
 
     def geneCardsLink(self, symbol):
         return geneCardsLink(symbol)
@@ -771,13 +829,14 @@ class htmlWriter:
         return '<a href="http://www.brain-map.org/search.do?findButton.x=1&queryText=%s">%s</a>' % (query, ids)
 
     def zfinInsituLink(self, geneId, desc=None, title=None):
-        if desc==None:
-            desc=geneId
-        if title!=None:
-            titleStr=' title="%s" ' % title
+        if desc == None:
+            desc = geneId
+        if title != None:
+            titleStr = ' title="%s" ' % title
         else:
-            titleStr=""
-        return '<a href="http://zfin.org/cgi-bin/webdriver?MIval=aa-xpatselect.apg&query_results=true&xpatsel_geneZdbId=%s" %s">%s</a>' % (geneId, titleStr, desc)
+            titleStr = ""
+        return '<a href="http://zfin.org/cgi-bin/webdriver?MIval=aa-xpatselect.apg&query_results=true&xpatsel_geneZdbId=%s" %s">%s</a>' % (
+        geneId, titleStr, desc)
 
     def ghostGeneUrl(self, geneId):
         return 'http://ghost.zool.kyoto-u.ac.jp/cgi-bin3/txtgetr2.cgi?%s' % geneId
@@ -790,44 +849,47 @@ class htmlWriter:
 
     def ensemblMCUrl(self, baseName, compName, basePair, compPair):
         """ return string with html-link to ensembl multicontigview from two genes given genes and organism names """
-        urlMask = "http://www.ensembl.org/%s/multicontigview?s1=%s;w=%d;c=%s:%d:1;w1=%d;c1=%s:%d:1;action=%s;id=1"  
+        urlMask = "http://www.ensembl.org/%s/multicontigview?s1=%s;w=%d;c=%s:%d:1;w1=%d;c1=%s:%d:1;action=%s;id=1"
         baseSize = (basePair.right.end - basePair.left.start) * 2
-        baseChrom = basePair.left.chrom.replace("chr","")
+        baseChrom = basePair.left.chrom.replace("chr", "")
         basePos = basePair.left.start
-        compChrom = compPair.left.chrom.replace("chr","")
+        compChrom = compPair.left.chrom.replace("chr", "")
         compPos = compPair.left.start
         if compPair.left.start - compPair.right.start < 0:
-            action="out"
+            action = "out"
             compSize = (compPair.right.end - compPair.left.start) * 2
         else:
-            action="flip"
+            action = "flip"
             compSize = (compPair.left.end - compPair.right.start) * 2
         url = urlMask % (baseName, compName, baseSize, baseChrom, basePos, compSize, compChrom, compPos, action)
         text = "(Multicontigv.)"
         urlStr = '<a href="%s">%s</a>\n' % (url, text)
         return urlStr
 
-## CGI
+    ## CGI
     def gotCgiVariables(self):
         self.cgiVarsRaw = cgi.FieldStorage()
 
-        self.cgiVars={}
+        self.cgiVars = {}
         for var in self.cgiVarsRaw:
-            self.cgiVars[var]=self.cgiVarsRaw[var].value
+            self.cgiVars[var] = self.cgiVarsRaw[var].value
 
-        return len(self.cgiVars)!=0
+        return len(self.cgiVars) != 0
+
 
 def HTMLEntitiesToUnicode(text):
     """Converts HTML entities to unicode.  For example '&amp;' becomes '&'."""
     text = str(BeautifulStoneSoup(text, convertEntities=BeautifulStoneSoup.ALL_ENTITIES))
     return text
 
+
 def unicodeToHTMLEntities(text):
     """Converts unicode to HTML entities.  For example '&' becomes '&amp;'."""
     text = cgi.escape(text).encode('ascii', 'xmlcharrefreplace')
     return text
 
+
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
 
+    doctest.testmod()

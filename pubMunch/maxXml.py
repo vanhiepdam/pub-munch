@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-import logging, re, urllib.request, urllib.parse, urllib.error
+import logging
+import urllib.error
+import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as etree
+
 
 class XmlParser(object):
     """ class to represent an xml tree (using ElementTree)
@@ -23,32 +27,33 @@ class XmlParser(object):
     ['boskoop']
 
     """
+
     def __init__(self, string=None, url=None, root=None, removeNamespaces=False):
-        self.root=None
-        if string!=None:
+        self.root = None
+        if string != None:
             self.fromString(string, removeNamespaces)
-        elif url!=None:
+        elif url != None:
             self.fromUrl(url, removeNamespaces)
-        elif root!=None:
-            self.root=root
+        elif root != None:
+            self.root = root
 
     def getAttr(self, name):
         return self.root.attrib.get(name, None)
 
     def getText(self):
-        if self.root.text==None:
+        if self.root.text == None:
             return ""
         else:
             return self.root.text
 
     def getTextTail(self):
-        if self.root.tail==None:
+        if self.root.tail == None:
             return ""
         else:
             return self.root.tail
 
     def fromString(self, string, removeNamespaces=False):
-        if string=="":
+        if string == "":
             return None
         root = etree.fromstring(string)
         if removeNamespaces:
@@ -60,9 +65,9 @@ class XmlParser(object):
         logging.debug("Retrieving %s" % url)
         text = urllib.request.urlopen(url).read()
         self.fromString(text, removeNamespaces=removeNamespaces)
-        #for w in stopWords:
-            #if w in text:
-                #return None
+        # for w in stopWords:
+        # if w in text:
+        # return None
 
     def _removeNamespaces(self):
         """ removes all namespaces from elementtree IN PLACE """
@@ -73,7 +78,7 @@ class XmlParser(object):
 
     def _hasAttribs(self, el, reqAttrDict):
         for attr, value in reqAttrDict.items():
-            if el.attrib.get(attr, None)!=value:
+            if el.attrib.get(attr, None) != value:
                 return False
         return True
 
@@ -82,7 +87,7 @@ class XmlParser(object):
             reqAttrDict is in the format attrName -> value
         """
         xml = self.getElFirst(path, reqAttrDict)
-        if xml != None and xml.text!=None:
+        if xml != None and xml.text != None:
             return xml.text
         else:
             return default
@@ -107,7 +112,7 @@ class XmlParser(object):
 
     def getXmlFirst(self, path, reqAttrDict=None, default=None):
         el = self.getElFirst(path, reqAttrDict)
-        if el==None:
+        if el == None:
             return default
         else:
             return XmlParser(root=el)
@@ -119,7 +124,8 @@ class XmlParser(object):
     def __repr__(self):
         return etree.tostring(self.root, encoding='unicode')
 
-def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
+
+def strip_namespace_inplace(etree, namespace=None, remove_from_attr=True):
     """ Takes a parsed ET structure and does an in-place removal of all namespaces,
         or removes a specific namespacem (by its URL).
 
@@ -136,28 +142,28 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
 
         I don't think I've seen any XML where this matters, though.
     """
-    if namespace==None: # all namespaces
+    if namespace == None:  # all namespaces
         for elem in etree.getiterator():
             tagname = elem.tag
             if not isinstance(elem.tag, str):
                 continue
-            if tagname[0]=='{':
-                elem.tag = tagname[ tagname.index('}',1)+1:]
+            if tagname[0] == '{':
+                elem.tag = tagname[tagname.index('}', 1) + 1:]
 
             if remove_from_attr:
-                to_delete=[]
-                to_set={}
+                to_delete = []
+                to_set = {}
                 for attr_name in elem.attrib:
-                    if attr_name[0]=='{':
+                    if attr_name[0] == '{':
                         old_val = elem.attrib[attr_name]
                         to_delete.append(attr_name)
-                        attr_name = attr_name[attr_name.index('}',1)+1:]
+                        attr_name = attr_name[attr_name.index('}', 1) + 1:]
                         to_set[attr_name] = old_val
                 for key in to_delete:
                     elem.attrib.pop(key)
                 elem.attrib.update(to_set)
 
-    else: # asked to remove specific namespace.
+    else:  # asked to remove specific namespace.
         ns = '{%s}' % namespace
         nsl = len(ns)
         for elem in etree.getiterator():
@@ -165,8 +171,8 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
                 elem.tag = elem.tag[nsl:]
 
             if remove_from_attr:
-                to_delete=[]
-                to_set={}
+                to_delete = []
+                to_set = {}
                 for attr_name in elem.attrib:
                     if attr_name.startswith(ns):
                         old_val = elem.attrib[attr_name]
@@ -177,7 +183,9 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
                     elem.attrib.pop(key)
                 elem.attrib.update(to_set)
 
+
 # -----
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

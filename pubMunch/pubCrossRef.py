@@ -1,9 +1,18 @@
 # a few convenience functions to query the new crossref API
 
-import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, json, doctest, logging
+import json
+import logging
+import urllib.error
+import urllib.error
+import urllib.parse
+import urllib.parse
+import urllib.request
+import urllib.request
+
 from . import maxCommon
 
-#def dois(issn):
+
+# def dois(issn):
 #    queryStr = ", ".join(queryFields)
 #    queryData = {"q" : queryStr, "pages" : "1", "rows" : 1}
 #    urlParams = urllib.urlencode(queryData)
@@ -26,16 +35,17 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     # construct url
     mid = metaInfoDict
     logging.debug("Looking up DOI for article %s, %s with crossref links api" % (mid["authors"], mid["title"]))
-    freeFormCitFields = [mid["authors"], '"%s"' % mid["title"], mid["journal"],mid["year"], "vol. "+mid["vol"], "no. "+ mid["issue"], "pp. "+mid["page"],  mid["printIssn"]]
+    freeFormCitFields = [mid["authors"], '"%s"' % mid["title"], mid["journal"], mid["year"], "vol. " + mid["vol"],
+                         "no. " + mid["issue"], "pp. " + mid["page"], mid["printIssn"]]
     freeFormCitStr = ", ".join(freeFormCitFields)
     logging.debug("crossref.org query %s" % freeFormCitStr)
     url = "https://api.crossref.org/works"
 
-    geturl =  url + "?query=" + urllib.parse.quote(freeFormCitStr.encode('utf-8'))
+    geturl = url + "?query=" + urllib.parse.quote(freeFormCitStr.encode('utf-8'))
 
     # send request
     httpResp = maxCommon.retryHttpRequest(geturl, None, delaySecs=delaySecs, repeatCount=repeatCount)
-    if httpResp==None:
+    if httpResp == None:
         logging.debug("HTTPError while sending crossref request")
         return None
 
@@ -44,7 +54,7 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     xrdata = json.loads(jsonStr)
 
     # parse result
-    if len(xrdata)==0:
+    if len(xrdata) == 0:
         logging.debug("Empty cross reply")
         return None
 
@@ -64,6 +74,8 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     logging.debug("Got DOI: %s" % doi)
     return doi
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()
